@@ -31,7 +31,7 @@ class Database(MongoClient):
         if self.get_player_by_discord_id(discord_id) is not None:
             raise AlreadyExist("The user already Exist")
         player = Player.from_ids(discord_id, steam_id, name)
-        self['players']['players'].insert(player.to_json())
+        self['players']['players'].insert_one(player.to_json())
         logger.info(f"Register Player: discord_id={discord_id}, steam_id={steam_id}, name={name}")
         return player
 
@@ -66,7 +66,7 @@ class Database(MongoClient):
         self[table][playerstats.gameType].replace_one({'_id': playerstats.id}, playerstats.to_json(), upsert=True)
 
     def add_match(self, match : Match):
-        self['matchs']['waiting'].insert(match.to_db_entry())
+        self['matchs']['waiting'].insert_one(match.to_db_entry())
 
     def _get_row_match(self, match_id : int):
         return self['matchs']['waiting'].find_one({'$or': [{'_id': match_id}, {'validation_msg_id': match_id}]})
@@ -99,7 +99,7 @@ class Database(MongoClient):
         match = self.get_match(match_id)
         if not match:
             return None
-        self['matchs']['validated'].insert(match.to_db_entry())
+        self['matchs']['validated'].insert_one(match.to_db_entry())
         self['matchs']['waiting'].delete_one({'_id': match.report_id})
         return match
 
