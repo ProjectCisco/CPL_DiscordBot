@@ -297,8 +297,9 @@ class Match(Report):
         return Color.GREEN, "Report parsed successfully"
 
     def to_history_message(self, rankPreviewer) -> str:
-        header = (f"```Match {self.report_id}; Gametype: {self.gametype.value}; Date: " +
-                  nextcord.utils.snowflake_time(self.report_id).strftime("%A %d %B %Y - %H:%M:%S") + "```\n")
+        header = (f"```Match {self.report_id}; Gametype: {self.gametype.value}" +
+                ("" if self.gametype.value != "FFA" else " - Season 1") +
+                "; Date: " + nextcord.utils.snowflake_time(self.report_id).strftime("%A %d %B %Y - %H:%M:%S") + "```\n")
         return header + self.players_to_string_with_rank_prevision(rankPreviewer)
 
     def to_history_line_for_player(self, discord_id : int, client : nextcord.Client=None) -> str:

@@ -57,7 +57,7 @@ class RankedModule(abcModule):
                 stat.first += player.position == 1
                 stat.subbedIn += 'SUB' in player.flags
                 stat.subbedOut += 'SUBBED' in player.flags
-                stat.civs[player.leader.uuname] = stat.civs.get(player.leader.uuname, 0) + 1
+                #stat.civs[player.leader.uuname] = stat.civs.get(player.leader.uuname, 0) + 1
                 self.database.set_playerstats(stat, table=table)
                 await asyncio.create_task(self.recalc_rank_role_by_id(player.id))
 
