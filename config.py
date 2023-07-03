@@ -42,7 +42,7 @@ HISTORY_CHANNEL_ID = 1121397779336527922
 MODERATOR_TAG = "<@&1121396594894446694>"
 
 # Register
-SERVER_IP = "51.68.123.207"
+SERVER_IP = "localhost"
 SERVER_PORT = "31612"
 OAUTH_LINK_BASE = f"https://discord.com/api/oauth2/authorize?client_id={CLIENT_ID}&redirect_uri=http%3A%2F%2F{SERVER_IP}:{SERVER_PORT}&response_type=code&scope=identify%20connections&state="
 WELCOME_CHANNEL = 368928122219003904
