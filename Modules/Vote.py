@@ -64,7 +64,7 @@ class VotingModule(abcModule):
     async def cmd_teamvote(self, *args: str, channel, member, message, **_):
         members = await self.parse_args(args, channel, member, message)
         voting = Voting(members, TEAM_VOTE_SETTINGS, DEFAULT_VOTE_SETTINGS,
-                        SPECIFIC_CHANNEL_COMMAND, channel, is_team=True)
+                        SPECIFIC_CHANNEL_COMMAND, channel)
         self._running_instances.append(voting)
         await voting.run(channel, self.client)
 
