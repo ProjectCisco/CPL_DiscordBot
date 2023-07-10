@@ -10,13 +10,14 @@ from .abcModule import abcModule
 from Leaders import leaders, Leader
 from exc import InvalidArgs, Timeout, BotException, BusyException
 from utils import get_member_in_channel, debug_command
-from config import SECRET_REMAP_VOTE_SETTING, VOTE_SETTINGS, DEFAULT_VOTE_SETTINGS, SECRET_CC_VOTE_SETTINGS, SECRET_SCRAP_VOTE_SETTINGS, SECRET_IRREL_VOTE_SETTINGS, TEAM_VOTE_SETTINGS, DraftMode, DRAFT_MODE_TITLE, MINUTES_BEFORE_REMOVING_VOTE
+from config import SECRET_REMAP_VOTE_SETTING, VOTE_SETTINGS, SPECIFIC_CHANNEL_COMMAND, DEFAULT_VOTE_SETTINGS, SECRET_CC_VOTE_SETTINGS, SECRET_SCRAP_VOTE_SETTINGS, SECRET_IRREL_VOTE_SETTINGS, TEAM_VOTE_SETTINGS, DraftMode, DRAFT_MODE_TITLE, MINUTES_BEFORE_REMOVING_VOTE
 from constant import EMOJI_PLUS, EMOJI_CROWN, EMOJI_OK
 
 from .Draft import DraftModule, BlindDraft, DynamicDraft
 
 EMOJI = str
 logger = logging.getLogger("VoteModule")
+
 
 class VotingModule(abcModule):
     def __init__(self, client):
@@ -27,21 +28,24 @@ class VotingModule(abcModule):
                          "dbgrunningvoteinstance": self.dbgrunningvoteinstance}
         self.dependency = [DraftModule]
         self.events = {"on_live_reaction_add": [self.on_reaction_add]}
-        self._running_instances : List[Voting] = []
+        self._running_instances: List[Voting] = []
 
-    async def cmd_vote(self, *args : str, channel, member, message, **_):
+    async def cmd_vote(self, *args: str, channel, member, message, **_):
         members = await self.parse_args(args, channel, member, message)
-        voting = Voting(members, VOTE_SETTINGS, DEFAULT_VOTE_SETTINGS, channel)
+        voting = Voting(members, VOTE_SETTINGS, DEFAULT_VOTE_SETTINGS,
+                        SPECIFIC_CHANNEL_COMMAND, )
         self._running_instances.append(voting)
         await voting.run(channel, self.client)
 
-    async def cmd_secretvote(self, *args : str, channel, member, message, **_):
+    async def cmd_secretvote(self, *args: str, channel, member, message, **_):
         if not args:
-            raise InvalidArgs("You must supply a vote type, cc, scrap, irrel or remap")
-        elif args[0] not in ("cc", "irrel", "scrap","remap"):
+            raise InvalidArgs(
+                "You must supply a vote type, cc, scrap, irrel or remap")
+        elif args[0] not in ("cc", "irrel", "scrap", "remap"):
             raise InvalidArgs("Vote type must be either cc, scrap or irrel")
         elif len(args) < 2:
-            raise InvalidArgs("You must supply a civilization, player, cc order or turn number")
+            raise InvalidArgs(
+                "You must supply a civilization, player, cc order or turn number")
         members = await self.parse_args(args, channel, member, message)
         msg = []
         for word in args[2:]:
@@ -57,10 +61,10 @@ class VotingModule(abcModule):
         self._running_instances.append(voting)
         await voting.run(channel)
 
-
-    async def cmd_teamvote(self, *args : str, channel, member, message, **_):
+    async def cmd_teamvote(self, *args: str, channel, member, message, **_):
         members = await self.parse_args(args, channel, member, message)
-        voting = Voting(members, TEAM_VOTE_SETTINGS, DEFAULT_VOTE_SETTINGS, channel, is_team=True)
+        voting = Voting(members, TEAM_VOTE_SETTINGS, DEFAULT_VOTE_SETTINGS,
+                        SPECIFIC_CHANNEL_COMMAND, channel, is_team=True)
         self._running_instances.append(voting)
         await voting.run(channel, self.client)
 
@@ -91,19 +95,19 @@ class VotingModule(abcModule):
             raise BotException("Trying to run a vote without members")
         return members
 
-
     @debug_command
-    async def dbgrunningvoteinstance(self, *_args : str, channel, **_):
+    async def dbgrunningvoteinstance(self, *_args: str, channel, **_):
         await channel.send(f"Current running Voting instance ({len(self._running_instances)}) : {self._running_instances}")
 
     @debug_command
-    async def dbgpurgevoteinstance(self, *_args : str, channel, **_):
+    async def dbgpurgevoteinstance(self, *_args: str, channel, **_):
         self._running_instances = []
         await self.dbgrunningvoteinstance(channel=channel)
 
-    async def on_reaction_add(self, reaction : nextcord.Reaction, user : nextcord.User):
+    async def on_reaction_add(self, reaction: nextcord.Reaction, user: nextcord.User):
         for instance in self._running_instances:
-            asyncio.create_task(self._on_reaction_add(instance, reaction, user))
+            asyncio.create_task(
+                self._on_reaction_add(instance, reaction, user))
 
     async def _on_reaction_add(self, instance, reaction, user):
         while instance.has_confirm == True and instance.confirm_msg is None:
@@ -121,6 +125,7 @@ class Voting:
     _instance_busy = False
 
     DRAFT_MODE_TITLE = "Draft Mode"
+
     class DraftMode(Enum):
         WITH_TRADE = "Trade Allowed"
         NO_TRADE = "Trade Forbidden"
@@ -150,12 +155,13 @@ class Voting:
 
         self.channel = channel
         self.created_at = datetime.now(tz=timezone.utc)
-        self.delete_at = self.created_at + timedelta(minutes=MINUTES_BEFORE_REMOVING_VOTE)
+        self.delete_at = self.created_at + \
+            timedelta(minutes=MINUTES_BEFORE_REMOVING_VOTE)
 
     def __repr__(self):
         return f"<Voting confirm_msg={self.confirm_msg.id}, ban_msg={self.ban_msg.id}, members={self.members}, waiting_members={self.waiting_members}>"
 
-    async def run(self, channel : nextcord.TextChannel, client : nextcord.Client):
+    async def run(self, channel: nextcord.TextChannel, client: nextcord.Client):
         self.check_if_instance_is_busy()
         Voting._instance_busy = True
         try:
@@ -169,16 +175,18 @@ class Voting:
         finally:
             Voting._instance_busy = False
         self.votes_msg_ids = [i.id for i in self.sended]
-        self.msg_ids = [*self.votes_msg_ids, self.ban_msg.id, self.confirm_msg.id]
-        self.msg_to_vote : Dict[int, Tuple[str, List[Tuple[EMOJI, str]]]] = {self.sended[i].id: (name, v) for i, (name, (v)) in enumerate(self._vote_settings.items())}
-
+        self.msg_ids = [*self.votes_msg_ids,
+                        self.ban_msg.id, self.confirm_msg.id]
+        self.msg_to_vote: Dict[int, Tuple[str, List[Tuple[EMOJI, str]]]] = {
+            self.sended[i].id: (name, v) for i, (name, (v)) in enumerate(self._vote_settings.items())}
 
     async def run_draft(self, client):
         if not self.draft_mode:
             await self.channel.send("WARNING : No drafting vote has been voted, a classic draft will be run.")
             self.draft_mode = DraftMode.DRAFT_2 if self.is_team else DraftMode.NO_TRADE
         if self.draft_mode in (DraftMode.NO_TRADE, DraftMode.WITH_TRADE):
-            drafts = DraftModule.get_draft(len(self.members), '.'.join(str(i) for i in self.banned_leaders), client=client)
+            drafts = DraftModule.get_draft(len(self.members), '.'.join(
+                str(i) for i in self.banned_leaders), client=client)
             await DraftModule.draw_draft(drafts, (m.mention for m in self.members), self.channel)
             return
         if self.draft_mode == DraftMode.RANDOM:
@@ -188,16 +196,19 @@ class Voting:
             await self.channel.send("Draft Mode selected is CWC, continue in the lobby with Multiplayer Helper.")
             return
         if self.draft_mode == DraftMode.BLIND:
-            draft = BlindDraft(self.members, '.'.join(str(i) for i in self.banned_leaders))
+            draft = BlindDraft(self.members, '.'.join(str(i)
+                               for i in self.banned_leaders))
             await draft.run(self.channel, client)
             return
         if self.draft_mode == DraftMode.DRAFT_2:
-            drafts = DraftModule.get_draft(2,  '.'.join(str(i) for i in self.banned_leaders), client=client)
+            drafts = DraftModule.get_draft(2,  '.'.join(
+                str(i) for i in self.banned_leaders), client=client)
             await DraftModule.draw_draft(drafts, (f"Team {i}" for i in range(1, 3)), self.channel)
         if self.draft_mode == DraftMode.DDRAFT_9_3_1:
             # Fetching captains
             cap_1, cap_2 = await self.fetchs_captains(client)
-            args = [None, '9', '.'.join(str(i) for i in self.banned_leaders), 'max', '3', '1']
+            args = [None, '9', '.'.join(
+                str(i) for i in self.banned_leaders), 'max', '3', '1']
             drafts_lines = DraftModule.get_draft(9, *args[2:4], client=client)
             ddraft = DynamicDraft(args, drafts_lines, cap_1, cap_2)
             await ddraft.run(self.channel, client)
@@ -205,12 +216,12 @@ class Voting:
     async def fetchs_captains(self, client) -> Tuple[nextcord.User, nextcord.User]:
         msg = await self.channel.send("Waiting for 2 captains ...")
         await msg.add_reaction(EMOJI_CROWN)
-        captains : List[nextcord.User] = []
+        captains: List[nextcord.User] = []
         while len(captains) < 2:
             try:
                 _, user = await client.wait_for('reaction_add',
-                                             timeout=300,
-                                             check=lambda reaction, user_: user_ in self.members and reaction.message.id == msg.id)
+                                                timeout=300,
+                                                check=lambda reaction, user_: user_ in self.members and reaction.message.id == msg.id)
                 if user not in captains:
                     captains.append(user)
                     await msg.edit(content="Waiting for 2 captains ...\nCaptains: " + ' '.join(i.mention for i in captains))
@@ -251,7 +262,8 @@ class Voting:
                 self.banned_leaders.append(leader)
                 await self.edit_ban_msg(self.ban_msg, client)
         elif reaction.message.id in self.votes_msg_ids and (await self.is_vote_winner(reaction)):
-            winner = self.get_winner_by_emoji_str(str(reaction.emoji), self.msg_to_vote[reaction.message.id])
+            winner = self.get_winner_by_emoji_str(
+                str(reaction.emoji), self.msg_to_vote[reaction.message.id])
             if not winner:
                 return False
             msg: nextcord.Message = reaction.message
@@ -296,7 +308,7 @@ class Voting:
     async def edit_confirm_msg(self, msg):
         await msg.edit(content="Waiting for : " + ', '.join(f"<@{i}>" for i in self.waiting_members))
 
-    async def is_vote_winner(self, reaction : nextcord.Reaction) -> bool:
+    async def is_vote_winner(self, reaction: nextcord.Reaction) -> bool:
         users = await reaction.users().flatten()
         ls = list(filter(lambda user: user.id in self.members_id, users))
         if len(ls) >= self.majority:
@@ -310,11 +322,12 @@ class Voting:
             await msg.add_reaction(reaction)
         return msg
 
-    def get_winner_by_emoji_str(self, reaction_str : EMOJI, vote : Tuple[str, Iterable[Tuple[EMOJI, str]]]) -> Optional[Tuple[str, EMOJI, str]]:
+    def get_winner_by_emoji_str(self, reaction_str: EMOJI, vote: Tuple[str, Iterable[Tuple[EMOJI, str]]]) -> Optional[Tuple[str, EMOJI, str]]:
         for line in vote[1]:
             if line[0] == reaction_str:
                 return (vote[0], *line)
         return None
+
 
 class SecretVote:
     _instance_busy = False
@@ -342,19 +355,22 @@ class SecretVote:
 
         self.channel = channel
         self.created_at = datetime.now(tz=timezone.utc)
-        self.delete_at = self.created_at + timedelta(minutes=MINUTES_BEFORE_REMOVING_VOTE)
+        self.delete_at = self.created_at + \
+            timedelta(minutes=MINUTES_BEFORE_REMOVING_VOTE)
 
     def __repr__(self):
         return f"<SecretVote members={self.members}, waiting_members={self.waiting_members}>"
 
-    async def run(self, channel : nextcord.TextChannel):
+    async def run(self, channel: nextcord.TextChannel):
         self.check_if_instance_is_busy()
         SecretVote._instance_busy = True
         try:
             for k, v in self._vote_settings.items():
-                title = "Question: " + k + " "  +  self.civ + ":grey_question::grey_question:"
-            em = nextcord.Embed(title=":detective: Secret vote :detective:", description=title)
-            em.add_field(name=":alarm_clock:Players", value='\n'.join(i.mention for i in self.members))
+                title = "Question: " + k + " " + self.civ + ":grey_question::grey_question:"
+            em = nextcord.Embed(
+                title=":detective: Secret vote :detective:", description=title)
+            em.add_field(name=":alarm_clock:Players",
+                         value='\n'.join(i.mention for i in self.members))
             self.question = await self.channel.send(embed=em)
 
             self.sent = await asyncio.gather(*[self.send_line(k + " " + self.civ, v, member) for k, v in self._vote_settings.items() for member in self.members])
@@ -365,7 +381,8 @@ class SecretVote:
 
         self.votes_msg_ids = [i.id for i in self.sent]
         self.msg_ids = [*self.votes_msg_ids]
-        self.msg_to_vote : Dict[int, Tuple[str, List[Tuple[EMOJI, str]]]] = {self.sent[i].id: (name, v) for i, (name, (v)) in enumerate(self._vote_settings.items())}
+        self.msg_to_vote: Dict[int, Tuple[str, List[Tuple[EMOJI, str]]]] = {
+            self.sent[i].id: (name, v) for i, (name, (v)) in enumerate(self._vote_settings.items())}
 
         timeout = time.time() + 120
         while time.time() < timeout and len(self.waiting_members) > 0:
@@ -378,7 +395,8 @@ class SecretVote:
             return False
         if reaction.message.id in self.votes_msg_ids and user.id in self.waiting_members:
             self.waiting_members.remove(user.id)
-            self.votes[str(reaction.emoji)] = self.votes.get(str(reaction.emoji), 0) + 1
+            self.votes[str(reaction.emoji)] = self.votes.get(
+                str(reaction.emoji), 0) + 1
             await self.finish_vote()
             if not self.waiting_members:
                 return True
@@ -391,7 +409,8 @@ class SecretVote:
 
     @staticmethod
     async def send_line(name, line, member):
-        description = f"**{name}**:  " + '  |  '.join(f"{i} {j}" for i, j in line)
+        description = f"**{name}**:  " + \
+            '  |  '.join(f"{i} {j}" for i, j in line)
         msg = await member.send(embed=nextcord.Embed(title="Secret vote", description=description))
         for reaction, _ in line:
             await msg.add_reaction(reaction)
@@ -400,13 +419,14 @@ class SecretVote:
     def get_winner(self):
         winner = max(self.votes.items(), key=lambda x: x[1])
         return winner
-    
+
     async def delete_vote(self):
         for i in self.sent:
             await i.delete()
         if len(self.waiting_members):
             await self.channel.send(f"The following members were inactive and have been automatically marked as 'yes' votes: {', '.join(f'<@{i}>' for i in self.waiting_members)}")
-        self.votes[str(EMOJI_OK)] = self.votes.get(str(EMOJI_OK), 0) + len(self.waiting_members)
+        self.votes[str(EMOJI_OK)] = self.votes.get(
+            str(EMOJI_OK), 0) + len(self.waiting_members)
         self.waiting_members = None
         await self.finish_vote()
 
@@ -415,12 +435,15 @@ class SecretVote:
             line = v
             title = "Question: " + k + " " + self.civ + ":grey_question::grey_question:"
         if self.waiting_members:
-            awaiting = "\n\n:alarm_clock: Awaiting vote from:\n" + '\n'.join(f"<@{i}>" for i in self.waiting_members)
+            awaiting = "\n\n:alarm_clock: Awaiting vote from:\n" + \
+                '\n'.join(f"<@{i}>" for i in self.waiting_members)
         else:
             awaiting = "\n\nVote finished :checkered_flag:"
         description = f"{title}{awaiting}"
-        em = nextcord.Embed(title=":detective: Secret vote :detective:", description=description)
+        em = nextcord.Embed(
+            title=":detective: Secret vote :detective:", description=description)
         if not self.waiting_members:
             for i, j in line:
-                em.add_field(name=f"{i} {j}", value=f"{self.votes.get(str(i), 0)}")
+                em.add_field(name=f"{i} {j}",
+                             value=f"{self.votes.get(str(i), 0)}")
         await self.question.edit(embed=em)
