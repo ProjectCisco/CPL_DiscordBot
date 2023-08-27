@@ -8,3 +8,4 @@ from .Utility import UtilityModule
 from .Vote import VotingModule
 from .Team import TeamModule
 from .LobbyLink import LobbyLinkModule
+from .Civilization import CivilizationModule
