@@ -172,12 +172,12 @@ class DraftMode(Enum):
 
 
 VOTE_SETTINGS: Dict[str, List[Tuple[EMOJI, str]]] = {
-    "Communication": [(EMOJI_NO_ENTRY, "None"), (LETTER.F, "Private between Friends and Allies"), (LETTER.P, "All Private Allowed"), (EMOJI_PLUS, "All Public Only")],
+    # "Communication": [(EMOJI_NO_ENTRY, "None"), (LETTER.F, "Private between Friends and Allies"), (LETTER.P, "All Private Allowed"), (EMOJI_PLUS, "All Public Only")],
     "Official Friends/Allies": [(NB[0], "None"), (NB[1], "One"), (NB[2], "Two"), (EMOJI_INFINITY, "Unlimited")],
-    "BYC Enabled (Capitals Only)": [(EMOJI_OK, "Yes "), (EMOJI_NO_ENTRY, "No")],
+    "BYC Mode (Capitals Only)": [(LETTER.B, "Balanced "), (LETTER.M, "Maximum"), (EMOJI_NO_ENTRY, "None")],
     "Game Duration": [(NB[4], "4 Hours"), (NB[6], "6 Hours"), (EMOJI_INFINITY, "Unlimited")],
-    "Map": [(LETTER.P, "Pangea"), ("🏝", "Contient & Island"), (NB[7], "7 seas"), (LETTER.H, "Highland"), (LETTER.L, "Lakes"), ("🗾", "Archipelago"),
-            (LETTER.F, "Fractal"), ("🗺️", "Small Continents"), ("🌋", "Primordial"), (LETTER.T, "Tilted Axis"), ("🌊", "Inland Sea"), ("💦", "Wetlands"), ("❓", "Random")],
+    "Map": [(LETTER.P, "Pangea Classic Ridges"), ("⛰️", "Pangea Standard"), ("🏞️", "Pangea+"), (NB[7], "7 seas"), ("💰", "Rich Highlands"), (LETTER.L, "Lakes"), ("🗾", "Archipelago"),
+            (LETTER.F, "Fractal"), ("🏝", "Contients & Island"), ("🗺️", "Small Continents"), ("🌋", "Primordial"), (LETTER.T, "Tilted Axis"), ("🌊", "Inland Sea"), ("💦", "Wetlands"), ("❓", "Random")],
     "Disasters": [(NB[0], "0"), (NB[1], "1"), (NB[2], "2"), (NB[3], "3"), (NB[4], "4")],
     "CC Voting": [(EMOJI_DOWN, "10 Turns Earlier"), (EMOJI_NEUTRAL, "No Change"), (EMOJI_UP, "10 Turns Later"), (EMOJI_DOUBLE_UP, "20 Turns Later")],
     DRAFT_MODE_TITLE: [("✅", DraftMode.WITH_TRADE.value), ("🚫", DraftMode.NO_TRADE.value),
@@ -197,12 +197,12 @@ DEFAULT_VOTE_SETTINGS: Dict[str, str] = {
 TEAM_VOTE_SETTINGS: Dict[str, List[Tuple[EMOJI, str]]] = {
     "1 Remap Token Per Team (T10)": [(EMOJI_OK, "Yes "), (EMOJI_NO_ENTRY, "No")],
     "BYC Enabled (Capitals Only)": [(EMOJI_OK, "Yes "), (EMOJI_NO_ENTRY, "No")],
-    "Map": [(LETTER.P, "Pangea"), ("🏝", "Contient & Island"), (NB[7], "7 seas"), (LETTER.H, "Highland"), (LETTER.L, "Lakes"), ("🗾", "Archipelago"),
-            (LETTER.F, "Fractal"), ("🗺️", "Small Continents"), ("🌋", "Primordial"), (LETTER.T, "Tilted Axis"), ("🌊", "Inland Sea"), ("💦", "Wetlands"), ("❓", "Random")],
+    "Map": [(LETTER.P, "Pangea Classic Ridges"), ("⛰️", "Pangea Standard"), ("🏞️", "Pangea+"), (NB[7], "7 seas"), (LETTER.H, "Highlands"), ("💰", "Rich Highlands"), (LETTER.L, "Lakes"), ("🗾", "Archipelago"),
+            (LETTER.F, "Fractal"), ("🏝", "Contients & Island"), ("🗺️", "Small Continents"), ("🌋", "Primordial"), (LETTER.T, "Tilted Axis"), ("🌊", "Inland Sea"), ("💦", "Wetlands"), ("❓", "Random")],
     "Timer": [("🐌", "Casual"), ("🕑", "Dynamic"), ("⏩", "Competitive")],
     "Ressources": [(LETTER.S, "Standard"), (LETTER.A, "Abundant")],
     "Strategics": [(LETTER.S, "Standard"), (LETTER.A, "Abundant"), (LETTER.E, "Epic"), (LETTER.G, "Guaranteed")],
-    "Ridges definition": [(LETTER.S, "Standard"), (LETTER.C, "Classic"), (LETTER.L, "Large opening"), (LETTER.I, "Impenetrable")],
+    # "Ridges definition": [(LETTER.S, "Standard"), (LETTER.C, "Classic"), (LETTER.L, "Large opening"), (LETTER.I, "Impenetrable")],
     "Disasters": [(NB[0], "0"), (NB[1], "1"), (NB[2], "2"), (NB[3], "3"), (NB[4], "4")],
     "Wonders": [(EMOJI_NO_ENTRY, "None"), (EMOJI_DOWN, "Scarse"), (EMOJI_NEUTRAL, "Standard"), (EMOJI_UP, "Abundant")],
     DRAFT_MODE_TITLE: [(NB[2], DraftMode.DRAFT_2.value), ("🌍", DraftMode.CWC.value),
