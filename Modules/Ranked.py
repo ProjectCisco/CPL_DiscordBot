@@ -61,6 +61,13 @@ class RankedModule(abcModule):
                 self.database.set_playerstats(stat, table=table)
                 await asyncio.create_task(self.recalc_rank_role_by_id(player.id))
 
+    async def update_leaderboard_request(self, gametype: GameType):
+        if gametype == GameType.DUEL:
+            # Handle Duel as a special case
+            raise ALEDException("Duel matches are not supported in the leaderboard for now.")
+        else:
+            await self.update_leaderboard(gametype)
+
     async def update_leaderboard(self, gametype : GameType):
         players = self.database.get_all_playerstats(gametype.value)
         cfg = LEADERBOARDS.get(gametype.value)
