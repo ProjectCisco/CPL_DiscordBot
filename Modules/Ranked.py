@@ -24,12 +24,12 @@ class RankedModule(abcModule):
     def __init__(self, client):
         super().__init__(client)
         self.commands = {"stats": self.cmd_stats,
-                         "oldstats": self.cmd_legacy_stats,
-                         "seasonstats": self.cmd_current_season_stats,
-                         "roomranking": self.cmd_roomranking,
-                         "seasonroomranking": self.cmd_seasonroomranking,
-                         "updateleaderboards": self.cmd_updateleaderboards,
-                         "recalcallrank": self.cmd_recalcallrank}
+                        "oldstats": self.cmd_legacy_stats,
+                        "seasonstats": self.cmd_current_season_stats,
+                        "roomranking": self.cmd_roomranking,
+                        "seasonroomranking": self.cmd_seasonroomranking,
+                        "updateleaderboards": self.cmd_updateleaderboards,
+                        "recalcallrank": self.cmd_recalcallrank}
         self.events = {"on_validate_match": [self.on_validate_match]}
 
         self.next_leaderboard_update : Dict[str, datetime] = {}
@@ -133,6 +133,9 @@ class RankedModule(abcModule):
         playerStatsPBC = self.database.get_playerstats_by_id('PBC', target.id)
         if playerStatsPBC.games:
             playerStatsPBC.create_embed_field(em)
+        playerStatsDuel = self.database.get_playerstats_by_id('Duel', target.id)
+        if playerStatsDuel.games:
+            playerStatsDuel.create_embed_field(em)    
         await channel.send(embed=em)
 
     async def cmd_legacy_stats(self, *args, channel, member, guild, **_):
@@ -158,14 +161,15 @@ class RankedModule(abcModule):
 
         playerStatsFFA = self.database.get_season_playerstats_by_id('FFA', target.id)
         em = playerStatsFFA.to_embed(target)
-        playerStatsFFA = self.database.get_season_playerstats_by_id('FFA', target.id)
-        em = playerStatsFFA.to_embed(target)
         playerStatsTeamer = self.database.get_season_playerstats_by_id('Teamer', target.id)
         if playerStatsTeamer.games:
             playerStatsTeamer.create_embed_field(em)
         playerStatsPBC = self.database.get_season_playerstats_by_id('PBC', target.id)
         if playerStatsPBC.games:
             playerStatsPBC.create_embed_field(em)
+        playerStatsDuel = self.database.get_season_playerstats_by_id('Duel', target.id)
+        if playerStatsDuel.games:
+            playerStatsDuel.create_embed_field(em)
         await channel.send(embed=em)
 
     async def cmd_roomranking(self, *args, channel : nextcord.TextChannel, member : nextcord.Member, **_):
@@ -249,15 +253,6 @@ class RankPreviewer:
 
     def calc_new_ranks(self, report : Report, old_ranks : List[Rating], table = 'stats2', apply_penalties=True) -> List[Rating]:
         try:
-#            if report.gametype == GameType.TEAMER:
-#                print("teamer", [tuple([old_ranks[i] for i, pl in enumerate(report.players) if pl.position == pos and not report.player_is_subbed(pl)])
-#                                                 for pos in range(1, max([pl.position for pl in report.players])+1)])
-#                new_ranks = self.to_1d(
-#                    self.ranked_module.env.rate([tuple([old_ranks[i] for i, pl in enumerate(report.players) if pl.position == pos and not report.player_is_subbed(pl)])
-#                                                 for pos in range(1, max([pl.position for pl in report.players])+1)])
-#                )
-#            else:
-#                print("ffa", [(i,) for i in old_ranks], [pl.position for pl in report.players])
             new_ranks = self.to_1d(
                 self.ranked_module.env.rate([(i,) for i in old_ranks], ranks=[pl.position for pl in report.players])
             )
@@ -268,13 +263,13 @@ class RankPreviewer:
             for i, pl in enumerate(report.players):
                 if Match.player_is_subbed(pl):
                     new_ranks[i] = Rating(mu=min(old_ranks[i].mu + SUBBED_MAX_POINT, new_ranks[i].mu),
-                                          sigma=old_ranks[i].sigma if DONT_CHANGE_SIGMA_ON_PENALTIES else new_ranks[i].sigma)
+                                        sigma=old_ranks[i].sigma if DONT_CHANGE_SIGMA_ON_PENALTIES else new_ranks[i].sigma)
                 if Match.player_is_sub(pl):
                     new_ranks[i] = Rating(mu=max(old_ranks[i].mu + SUB_MINIMUM_POINT, new_ranks[i].mu),
-                                          sigma=old_ranks[i].sigma if DONT_CHANGE_SIGMA_ON_PENALTIES else new_ranks[i].sigma)
+                                        sigma=old_ranks[i].sigma if DONT_CHANGE_SIGMA_ON_PENALTIES else new_ranks[i].sigma)
                 if Match.player_is_quitter(pl):
                     new_ranks[i] = Rating(mu=min(old_ranks[i].mu + QUITTER_MAX_POINT, new_ranks[i].mu),
-                                          sigma=old_ranks[i].sigma if DONT_CHANGE_SIGMA_ON_PENALTIES else new_ranks[i].sigma)
+                                        sigma=old_ranks[i].sigma if DONT_CHANGE_SIGMA_ON_PENALTIES else new_ranks[i].sigma)
         return new_ranks
 
     def get_ranks_preview(self, report : Report) -> List[float]:

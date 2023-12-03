@@ -24,10 +24,11 @@ class Color(IntEnum):
 class GameType(Enum):
     FFA = "FFA"
     TEAMER = "Teamer"
-    PBC = "PBC"
+    PBC = "PBC FFA"
+    DUEL = "Duel"
+   # PBCTEAMER = "PBC Teamer"
 
 GAMETYPE_ALIAS = {
-    "duel": GameType.FFA,
     "cloud": GameType.PBC
 }
 
@@ -71,7 +72,7 @@ class Report:
 
     def players_to_strings(self) -> str:
         return '\n'.join(f"{i.position}: <@{i.id}> {i.leader and i.leader.civ} {' '.join(f'[**{f}**]' for f in i.flags)}"
-                         for i in self.players)
+                        for i in self.players)
 
     def players_to_string_with_rank_prevision(self, rankPreviewer) -> str:
         rank_prevision = rankPreviewer.get_ranks_preview(self)
@@ -220,15 +221,12 @@ class Report:
                 if k in gametype_query:
                     gametype = v
                     break
-        if gametype in (GameType.FFA, GameType.PBC):
+        if gametype in (GameType.FFA, GameType.PBC, GameType.DUEL):
             players = cls.parse_ffa(corps)
         elif gametype == GameType.TEAMER:
             players = cls.parse_teamer(corps)
         else:
             players = []
-            # raise NotFound(f"GameType don't match, please use one of the Following : {', '.join(i.value for i in GameType)}")
-        # if not players:
-        #     raise InvalidArgs("No player was mentionned in report")
         return cls(gametype, players)
 
 
@@ -282,14 +280,14 @@ class Match(Report):
             return Color.YELLOW, ambigous_msg
         if not all(i.is_valid() for i in self.players):
             return Color.YELLOW, "Some civilizations have not been recognized"
+        if self.gametype == GameType.DUEL and len(self.players) > 2:
+            return Color.YELLOW, "Duel reports should have a maximum of 2 players"
         if self.gametype == GameType.TEAMER and any([i for i in self.players if i.position not in [1, 2]]):
             return Color.YELLOW, "More than 2 teams in teamer game"
         if (self.gametype == GameType.TEAMER and
             len([i for i in self.players if i.position == 1 and not self.player_is_subbed(i)]) !=
             len([i for i in self.players if i.position == 2 and not self.player_is_subbed(i)])):
             return Color.YELLOW, "Teams didn't have same amount of player"
-        # if len(self.players) < 6:
-        #     return Color.YELLOW, "Report has suspicious number of player"
         if contestant:
             return Color.PURPLE, "The report is contested by a player"
         if not any(self.player_is_host(i) for i in self.players):
