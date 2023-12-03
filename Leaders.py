@@ -7,7 +7,7 @@ from config import LEADER_CSV_PATH
 
 logger = logging.getLogger("LeaderParser")
 NON_WORD = re.compile(r"[^\wÀ-ú\-]+")
-TYPES_OF_CIV = ['naval', 'culture', 'science', 'war', 'generalist']
+TYPES_OF_CIV = ['naval', 'culture', 'science', 'war', 'split', 'generalist']
 
 class Leaders:
     def __init__(self, leaders_):
