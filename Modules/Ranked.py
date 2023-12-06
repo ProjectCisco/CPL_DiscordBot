@@ -180,12 +180,14 @@ class RankedModule(abcModule):
         else:
             target = member
 
-        playerStatsPBC = self.database.get_playerstats_by_id('PBC FFA', target.id)
+        playerStatsPBC = self.database.get_playerstats_by_id(GameType.PBC.value, target.id)
         em = playerStatsPBC.to_embed(target)
-        playerStatsCLOUDTEAMER = self.database.get_playerstats_by_id('PBC Teamer', target.id)
+
+        playerStatsCLOUDTEAMER = self.database.get_playerstats_by_id(GameType.CLOUDTEAMER.value, target.id)
         if playerStatsCLOUDTEAMER.games:
             playerStatsCLOUDTEAMER.create_embed_field(em)
-        await channel.send(embed=em)        
+
+        await channel.send(embed=em)    
 
     async def cmd_legacy_stats(self, *args, channel, member, guild, **_):
         if args:
@@ -231,19 +233,19 @@ class RankedModule(abcModule):
                 for gametype in GameType])) for member in members]
         stats.sort(key=lambda x: x[1], reverse=True)
         ml = max(len(i.display_name) for i in members)
-        header = f"```py\n{'Name':<{ml}}| {' | '.join(f'{gt.value[:4]:>4}' for gt in GameType)}\n"
+        header = f"```py\n{'Name':<{ml}}| {' | '.join(f'{gt.value[:4]:>4}' if gt != GameType.CLOUDTEAMER else f'{gt.value[:8]:>8}' for gt in GameType)}\n"
         txt = '\n'.join(f"{member.display_name:<{ml}}: "+ ' | '.join(GET_STAT(i) for i in stat) for member, stat in stats)
         await channel.send(header + txt + '```\n')
 
-    async def cmd_seasonroomranking(self, *args, channel : nextcord.TextChannel, member : nextcord.Member, **_):
+    async def cmd_seasonroomranking(self, *args, channel: nextcord.TextChannel, member: nextcord.Member, **_):
         members = get_member_in_channel(member.voice)
-        stats : List[Tuple[nextcord.Member, Tuple[int, ...]]] =[
+        stats: List[Tuple[nextcord.Member, Tuple[int, ...]]] = [
             (member, tuple([GET_SORTING_RANK(self.database.get_season_playerstats_by_id(gametype.value, member.id))
-                for gametype in GameType])) for member in members]
+                            for gametype in GameType if gametype not in [GameType.PBC, GameType.CLOUDTEAMER]])) for member in members]
         stats.sort(key=lambda x: x[1], reverse=True)
         ml = max(len(i.display_name) for i in members)
-        header = f"```py\n{'Name':<{ml}}| {' | '.join(f'{gt.value[:4]:>4}' for gt in GameType)}\n"
-        txt = '\n'.join(f"{member.display_name:<{ml}}: "+ ' | '.join(GET_STAT(i) for i in stat) for member, stat in stats)
+        header = f"```py\n{'Name':<{ml}}| {' | '.join(f'{gt.value[:4]:>4}' for gt in GameType if gt not in [GameType.PBC, GameType.CLOUDTEAMER])}\n"
+        txt = '\n'.join(f"{member.display_name:<{ml}}: " + ' | '.join(GET_STAT(i) for i in stat) for member, stat in stats)
         await channel.send(header + txt + '```\n')
 
     @moderator_command
