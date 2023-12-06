@@ -24,12 +24,14 @@ class Color(IntEnum):
 class GameType(Enum):
     FFA = "FFA"
     TEAMER = "Teamer"
-    PBC = "PBC FFA"
+    PBC = "PBC"
     DUEL = "Duel"
-   # PBCTEAMER = "PBC Teamer"
+    CLOUDTEAMER = "PBC-Teamer"
 
 GAMETYPE_ALIAS = {
-    "cloud": GameType.PBC
+    "cloud": GameType.PBC,
+    "pbc ffa": GameType.PBC,
+    "PBC TEAMER": GameType.CLOUDTEAMER,
 }
 
 MENTION = re.compile(r"<@!?(\d+)>\s*([^<]*)")
@@ -120,10 +122,41 @@ class Report:
     @classmethod
     def from_json(cls, js):
         return cls((js['gametype'] and GameType(js['gametype'])) if js['gametype'] else None,
-                   [GPlayer.from_json(i) for i in js['players']])
+                    [GPlayer.from_json(i) for i in js['players']])
 
     @classmethod
     def parse_ffa(cls, txt) -> List[GPlayer]:
+        # Init
+        result = []
+        pos = 0
+        hosts : List[str] = []
+        subs : List[Tuple[str, str]]= []
+        txt = txt.split(MODERATOR_TAG, 1)[0]  # Remove after moderator tag
+        for line in txt.split('\n'):
+            line = line.strip()
+            sub_ls = MENTION_SUB.findall(line)
+            print(line, sub_ls)
+            for player_sub, player_subbed in sub_ls:
+                subs.append((player_sub, player_subbed))
+            ls = MENTION.findall(line)
+            if line.lower().startswith("host"):
+                hosts = [discord_id for discord_id, _ in MENTION.findall(line)]
+                continue
+            # Line is regular report
+            pos += 1 if ls else 0
+            result.extend(GPlayer(int(discord_id),
+                                  leaders.get_leader_named(value),
+                                  pos,
+                                  (["HOST"] if discord_id in hosts else []) + (["QUIT"] if "quit" in value.lower() else []) +
+                                  (["SUB"] if discord_id in [i for i, _ in subs] else []) +
+                                  (["SUBBED"] if discord_id in [j for _, j in subs] else []),
+                                  value)
+                          for discord_id, value in ls)
+        result = cls.guess_subs_civs(result, subs)
+        return result
+
+    @classmethod
+    def parse_cloudffa(cls, txt) -> List[GPlayer]:
         # Init
         result = []
         pos = 0
@@ -187,7 +220,45 @@ class Report:
             pos += is_team_report
         result = cls.guess_subs_civs(result, subs)
         return result
+    
+    @classmethod
+    def parse_cloudteamer(cls, txt) -> List[GPlayer]:
+        # Debug statement to check if the method is called
+        print(f"DEBUG: Parsing PBC-Teamer report - {txt}")
+        # Init
+        result = []
+        pos = 1
+        hosts : List[str] = []
+        subs : List[Tuple[str, str]]= []
+        txt = txt.split(MODERATOR_TAG, 1)[0]  # Remove after moderator tag
+        for paraph in txt.split('\n\n'):
+            is_team_report = False
+            for line in paraph.split('\n'):
+                line = line.strip()
+                sub_ls = MENTION_SUB.findall(line)
+                print(line, sub_ls)
+                for player_sub, player_subbed in sub_ls:
+                    subs.append((player_sub, player_subbed))
+                ls = MENTION.findall(line)
+                if line.lower().startswith("host"):
+                    hosts = [discord_id for discord_id, _ in MENTION.findall(line)]
+                    continue
+                # Line is regular report
+                if ls:
+                    is_team_report = True
+                    result.extend(GPlayer(int(discord_id),
+                                          leaders.get_leader_named(value),
+                                          pos,
+                                          (["HOST"] if discord_id in hosts else []) + (["QUIT"] if "quit" in value.lower() else []) +
+                                          (["SUB"] if discord_id in [i for i, _ in subs] else []) +
+                                          (["SUBBED"] if discord_id in [j for _, j in subs] else []),
+                                          value)
+                                  for discord_id, value in ls)
+            pos += is_team_report
+        result = cls.guess_subs_civs(result, subs)
+        return result
 
+    
     @staticmethod
     def guess_subs_civs(result : List[GPlayer], subs : List[Tuple[str, str]]) -> List[GPlayer]:
         players = {str(i.id): i for i in result}
@@ -205,6 +276,7 @@ class Report:
 
     @classmethod
     def from_str(cls, txt):
+        print(f"DEBUG: Parsing report from string: {txt}")
         if '\n' in txt:
             gametype_query, corps = txt.split('\n', 1)
         else:
@@ -221,10 +293,18 @@ class Report:
                 if k in gametype_query:
                     gametype = v
                     break
-        if gametype in (GameType.FFA, GameType.PBC, GameType.DUEL):
+        if "pbc" in gametype_query and "teamer" in gametype_query:
+            gametype = GameType.CLOUDTEAMER
+        if "pbc" in gametype_query and "ffa" in gametype_query:
+            gametype = GameType.PBC
+        if gametype in (GameType.FFA, GameType.DUEL):
             players = cls.parse_ffa(corps)
+        elif gametype == GameType.PBC:
+            players = cls.parse_cloudffa(corps)
         elif gametype == GameType.TEAMER:
             players = cls.parse_teamer(corps)
+        elif gametype == GameType.CLOUDTEAMER:
+            players = cls.parse_cloudteamer(corps)
         else:
             players = []
         return cls(gametype, players)
@@ -283,6 +363,8 @@ class Match(Report):
         if self.gametype == GameType.DUEL and len(self.players) > 2:
             return Color.YELLOW, "Duel reports should have a maximum of 2 players"
         if self.gametype == GameType.TEAMER and any([i for i in self.players if i.position not in [1, 2]]):
+            return Color.YELLOW, "More than 2 teams in teamer game"
+        if self.gametype == GameType.CLOUDTEAMER and any([i for i in self.players if i.position not in [1, 2]]):
             return Color.YELLOW, "More than 2 teams in teamer game"
         if (self.gametype == GameType.TEAMER and
             len([i for i in self.players if i.position == 1 and not self.player_is_subbed(i)]) !=

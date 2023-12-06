@@ -24,6 +24,7 @@ class RankedModule(abcModule):
     def __init__(self, client):
         super().__init__(client)
         self.commands = {"stats": self.cmd_stats,
+                        "cloudstats": self.cmd_cloudstats, 
                         "oldstats": self.cmd_legacy_stats,
                         "seasonstats": self.cmd_current_season_stats,
                         "roomranking": self.cmd_roomranking,
@@ -57,60 +58,88 @@ class RankedModule(abcModule):
                 stat.first += player.position == 1
                 stat.subbedIn += 'SUB' in player.flags
                 stat.subbedOut += 'SUBBED' in player.flags
-                #stat.civs[player.leader.uuname] = stat.civs.get(player.leader.uuname, 0) + 1
+                stat.civs[player.leader.uuname] = stat.civs.get(player.leader.uuname, 0) + 1
                 self.database.set_playerstats(stat, table=table)
                 await asyncio.create_task(self.recalc_rank_role_by_id(player.id))
 
     async def update_leaderboard_request(self, gametype: GameType):
         if gametype == GameType.DUEL:
             # Handle Duel as a special case
-            raise ALEDException("Duel matches are not supported in the leaderboard for now.")
+            raise ALEDException("Duel  matches are not supported in the leaderboard for now.")
         else:
             await self.update_leaderboard(gametype)
-
-    async def update_leaderboard(self, gametype : GameType):
+    async def update_leaderboard(self, gametype: GameType):
         players = self.database.get_all_playerstats(gametype.value)
         cfg = LEADERBOARDS.get(gametype.value)
+
         if not cfg:
             raise ALEDException(f"Can't find Leaderboard configuration for GameType \"{gametype.value}\"")
+        
         channel = self.client.get_channel(cfg['channel_id'])
+
         if not channel:
             raise ALEDException(f"Can't find channel ID {cfg['channel_id']} for following Leaderboard : \"{gametype.value}\"")
+
         players.sort(key=lambda pl_: pl_.skill, reverse=True)
         txt = "`Rank  Skill  [wins - loss]  win%  1st`\n"
         for j, msg_id in enumerate(cfg['message_id']):
-            msg : nextcord.PartialMessage = channel.get_partial_message(msg_id)
-            for i in range(j*10, (j+1)*10):
-                if i >= len(players):
-                    txt += f"`#{i+1:<3}      -  [     -     ]     -    -`\n"
-                else:
-                    pl = players[i]
-                    txt += f"`#{i+1:<3}  {int(pl.skill):>5}  [ {pl.wins:>3} - {pl.games-pl.wins:<3} ]  {pl.wins/pl.games:4.0%}  {pl.first:>3}` <@{pl.id}>\n"
-            await msg.edit(content=txt)
-            txt = ""
-        await self.update_season_leaderboard(gametype)
+            msg: nextcord.PartialMessage = channel.get_partial_message(msg_id)
 
-    async def update_season_leaderboard(self, gametype : GameType):
+            if msg:
+                for i in range(j * 10, (j + 1) * 10):
+                    if i >= len(players):
+                        txt += f"`#{i + 1:<3}      -  [     -     ]     -    -`\n"
+                    else:
+                        pl = players[i]
+                        txt += f"`#{i + 1:<3}  {int(pl.skill):>5}  [ {pl.wins:>3} - {pl.games - pl.wins:<3} ]  {pl.wins / pl.games:4.0%}  {pl.first:>3}` <@{pl.id}>\n"
+
+                try:
+                    await msg.edit(content=txt)
+                except nextcord.errors.NotFound:
+                    print(f"Message with ID {msg_id} not found. Skipping edit.")
+                txt = ""
+            else:
+                print(f"Message with ID {msg_id} not found. Skipping edit.")
+
+    async def update_season_leaderboard(self, gametype: GameType):
+        # Exclude specific game types from season leaderboards
+        excluded_game_types = [GameType.DUEL, GameType.PBC, GameType.CLOUDTEAMER]
+
+        if gametype in excluded_game_types or gametype.value == 'PBC-Teamer':
+            return
+        
         players = self.database.get_all_season_playerstats(gametype.value)
         cfg = SEASON_LEADERBOARDS.get(gametype.value)
+        
         if not cfg:
             raise ALEDException(f"Can't find Leaderboard configuration for GameType \"{gametype.value}\"")
             print(f"Can't find Leaderboard configuration for GameType \"{gametype.value}\"")
+
         channel = self.client.get_channel(cfg['channel_id'])
+        
         if not channel:
-            raise ALEDException(f"Can't find channel ID {cfg['channel_id']} for following Leaderboard : \"{gametype.value}\"")
+            raise ALEDException(f"Can't find channel ID {cfg['channel_id']} for following Leaderboard: \"{gametype.value}\"")
+
         players.sort(key=lambda pl_: pl_.skill, reverse=True)
         txt = "`Rank  Skill  [wins - loss]  win%  1st`\n"
+
         for j, msg_id in enumerate(cfg['message_id']):
-            msg : nextcord.PartialMessage = channel.get_partial_message(msg_id)
-            for i in range(j*10, (j+1)*10):
-                if i >= len(players):
-                    txt += f"`#{i+1:<3}      -  [     -     ]     -    -`\n"
-                else:
-                    pl = players[i]
-                    txt += f"`#{i+1:<3}  {int(pl.skill):>5}  [ {pl.wins:>3} - {pl.games-pl.wins:<3} ]  {pl.wins/pl.games:4.0%}  {pl.first:>3}` <@{pl.id}>\n"
-            await msg.edit(content=txt)
-            txt = ""
+            msg: nextcord.PartialMessage = channel.get_partial_message(msg_id)
+            if msg:
+                for i in range(j * 10, (j + 1) * 10):
+                    if i >= len(players):
+                        txt += f"`#{i + 1:<3}      -  [     -     ]     -    -`\n"
+                    else:
+                        pl = players[i]
+                        txt += f"`#{i + 1:<3}  {int(pl.skill):>5}  [ {pl.wins:>3} - {pl.games - pl.wins:<3} ]  {pl.wins / pl.games:4.0%}  {pl.first:>3}` <@{pl.id}>\n"
+
+                try:
+                    await msg.edit(content=txt)
+                except nextcord.errors.NotFound:
+                    print(f"Message with ID {msg_id} not found. Skipping edit.")
+                txt = ""
+            else:
+                print(f"Message with ID {msg_id} not found. Skipping edit.")
 
     async def update_leaderboard_request(self, gametype : GameType):
         next_updated = self.next_leaderboard_update.get(gametype.value, None)
@@ -137,13 +166,26 @@ class RankedModule(abcModule):
         playerStatsTeamer = self.database.get_playerstats_by_id('Teamer', target.id)
         if playerStatsTeamer.games:
             playerStatsTeamer.create_embed_field(em)
-        playerStatsPBC = self.database.get_playerstats_by_id('PBC', target.id)
-        if playerStatsPBC.games:
-            playerStatsPBC.create_embed_field(em)
         playerStatsDuel = self.database.get_playerstats_by_id('Duel', target.id)
         if playerStatsDuel.games:
             playerStatsDuel.create_embed_field(em)    
         await channel.send(embed=em)
+
+    async def cmd_cloudstats(self, *args, channel, member, guild, **_):
+        if args:
+            target_name = ' '.join(args)
+            target = get_member_by_name(target_name, guild or self.client)
+            if not target:
+                raise NotFound(f"Member \"{target_name}\" not found")
+        else:
+            target = member
+
+        playerStatsPBC = self.database.get_playerstats_by_id('PBC FFA', target.id)
+        em = playerStatsPBC.to_embed(target)
+        playerStatsCLOUDTEAMER = self.database.get_playerstats_by_id('PBC Teamer', target.id)
+        if playerStatsCLOUDTEAMER.games:
+            playerStatsCLOUDTEAMER.create_embed_field(em)
+        await channel.send(embed=em)        
 
     async def cmd_legacy_stats(self, *args, channel, member, guild, **_):
         if args:
@@ -171,9 +213,12 @@ class RankedModule(abcModule):
         playerStatsTeamer = self.database.get_season_playerstats_by_id('Teamer', target.id)
         if playerStatsTeamer.games:
             playerStatsTeamer.create_embed_field(em)
-        playerStatsPBC = self.database.get_season_playerstats_by_id('PBC', target.id)
+        playerStatsPBC = self.database.get_season_playerstats_by_id('PBC FFA', target.id)
         if playerStatsPBC.games:
             playerStatsPBC.create_embed_field(em)
+        playerStatsCLOUDTEAMER = self.database.get_season_playerstats_by_id('PBC Teamer', target.id)
+        if playerStatsCLOUDTEAMER.games:
+            playerStatsCLOUDTEAMER.create_embed_field(em)
         playerStatsDuel = self.database.get_season_playerstats_by_id('Duel', target.id)
         if playerStatsDuel.games:
             playerStatsDuel.create_embed_field(em)
