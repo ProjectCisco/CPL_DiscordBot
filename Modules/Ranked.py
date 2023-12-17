@@ -103,6 +103,7 @@ class RankedModule(abcModule):
 
     async def update_season_leaderboard(self, gametype: GameType):
         # Exclude specific game types from season leaderboards
+        print(f"Updating session leaderboard for {gametype.value}")
         excluded_game_types = [GameType.DUEL, GameType.PBC, GameType.CLOUDTEAMER]
 
         if gametype in excluded_game_types or gametype.value == 'PBC-Teamer':
@@ -151,6 +152,7 @@ class RankedModule(abcModule):
     async def update_leaderboards(self):
         for gametype in GameType:
             await self.update_leaderboard(gametype)
+            await self.update_season_leaderboard(gametype)
 
     async def cmd_stats(self, *args, channel, member, guild, **_):
         if args:
