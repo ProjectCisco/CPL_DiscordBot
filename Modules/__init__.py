@@ -9,3 +9,4 @@ from .Vote import VotingModule
 from .Team import TeamModule
 from .LobbyLink import LobbyLinkModule
 from .Civilization import CivilizationModule
+from .SeedGen import SeedGenModule

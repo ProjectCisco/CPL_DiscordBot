@@ -7,7 +7,7 @@ from typing import Dict, List, Callable, Awaitable
 from models.ReportParser import Match
 from Database import Database
 from FlaskServer import FlaskServer
-from Modules import abcModule, DraftModule, RankedModule, RegisterModule, ReportModule, VotingModule, UtilityModule, TeamModule, BanModule, LobbyLinkModule, CivilizationModule
+from Modules import abcModule, DraftModule, RankedModule, RegisterModule, ReportModule, VotingModule, UtilityModule, TeamModule, BanModule, LobbyLinkModule, CivilizationModule, SeedGenModule
 from config import COMMAND_PREFIX, DEVELOPPER_CONTACT, TOKEN_PATH, CPL_GUILD_ID, NO_COMMANDS_CHANNELS, SPECIFIC_CHANNEL_COMMAND
 from exc import BotException, ALEDException, Forbidden
 
@@ -15,7 +15,7 @@ logger = logging.getLogger("Main")
 logging.basicConfig(level=logging.INFO)
 
 ACTIVE_MODULE = [DraftModule, RankedModule, ReportModule, VotingModule,
-                 UtilityModule, RegisterModule, TeamModule, LobbyLinkModule, CivilizationModule]
+                 UtilityModule, RegisterModule, TeamModule, LobbyLinkModule, CivilizationModule, SeedGenModule,]
 
 # Typing
 COMMAND_T = Callable[[List[str]], Awaitable[None]]
